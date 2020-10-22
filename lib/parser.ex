@@ -31,7 +31,7 @@ defmodule Querie.SchemaHelpers do
 end
 
 defmodule Querie.Parser do
-  @supported_ops ~w(lt gt ge le is ne in contains icontains between ibetween sort)
+  @supported_ops ~w(lt gt ge le is ne in contains icontains between ibetween sort has)
 
   @doc """
   Parse params and return

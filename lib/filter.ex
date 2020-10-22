@@ -78,7 +78,7 @@ defmodule Querie.Filter do
   end
 
   def filter(:is, {column, value}) do
-    filter(column, value)
+    dynamic([q], field(q, ^column) == ^value)
   end
 
   def filter(_op, {_column, nil}) do
@@ -118,6 +118,10 @@ defmodule Querie.Filter do
   """
   def filter(:ibetween, {column, [lower, upper]}) do
     dynamic([q], field(q, ^column) >= ^lower and field(q, ^column) <= ^upper)
+  end
+
+  def filter(:has, {column, value}) do
+    dynamic([q], ^value in field(q, ^column))
   end
 
   def filter(:contains, {column, value}) do
