@@ -107,22 +107,22 @@ defmodule Querex.Filter do
   end
 
   def filter(:between, {column, [lower, upper]}) do
-    dynamic([q], field(q, ^column) > ^lower and  field(q, ^column) < ^upper)
+    dynamic([q], field(q, ^column) > ^lower and field(q, ^column) < ^upper)
   end
 
-  @doc"""
+  @doc """
   between inclusive
   """
   def filter(:ibetween, {column, [lower, upper]}) do
-    dynamic([q], field(q, ^column) >= ^lower and  field(q, ^column) =< ^upper)
+    dynamic([q], field(q, ^column) >= ^lower and field(q, ^column) <= ^upper)
   end
 
   def filter(:contains, {column, value}) do
-    dynamic([q], field(q, ^column) like "%#{value}%")
+    dynamic([q], like(field(q, ^column), ^"%#{value}%"))
   end
 
   def filter(:icontains, {column, value}) do
-    dynamic([q], field(q, ^column) ilike "%#{value}%")
+    dynamic([q], ilike(field(q, ^column), ^"%#{value}%"))
   end
 
   def filter(column, values) when is_list(values) do
