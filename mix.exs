@@ -1,9 +1,9 @@
-defmodule Querex.MixProject do
+defmodule Querie.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :querex,
+      app: :querie,
       version: "0.1.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,

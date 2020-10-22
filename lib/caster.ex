@@ -1,4 +1,4 @@
-defmodule Querex.Caster do
+defmodule Querie.Caster do
   def cast(type, value, opts \\ [])
 
   def cast(_, "nil", _) do

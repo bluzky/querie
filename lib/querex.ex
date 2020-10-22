@@ -1,6 +1,6 @@
-defmodule Querex do
+defmodule Querie do
   @moduledoc """
-  Documentation for `Querex`.
+  Documentation for `Querie`.
   """
 
   @doc """
@@ -8,7 +8,7 @@ defmodule Querex do
 
   ## Examples
 
-      iex> Querex.hello()
+      iex> Querie.hello()
       :world
 
   """

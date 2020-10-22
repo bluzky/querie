@@ -1,4 +1,4 @@
-defmodule Querex.ParseContext do
+defmodule Querie.ParseContext do
   defstruct valid?: true,
             filter_params: [],
             sort_params: [],
@@ -9,7 +9,7 @@ defmodule Querex.ParseContext do
             schema: %{}
 end
 
-defmodule Querex.SchemaHelpers do
+defmodule Querie.SchemaHelpers do
   def get_field(schema, field) do
     field_def = Map.get(schema, field)
 
@@ -30,7 +30,7 @@ defmodule Querex.SchemaHelpers do
   end
 end
 
-defmodule Querex.Parser do
+defmodule Querie.Parser do
   @supported_ops ~w(lt gt ge le is ne in contains icontains between ibetween sort)
 
   @doc """
@@ -60,7 +60,7 @@ defmodule Querex.Parser do
     sort_params = Enum.filter(params, fn {op, _, _} -> op == :sort end)
     filter_params = params -- sort_params
 
-    %Querex.ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
+    %Querie.ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
   end
 
   defp parse_condition({key, value}) do
@@ -82,8 +82,8 @@ defmodule Querex.Parser do
     parsed_data =
       context.filter_params
       |> Enum.map(fn {op, column, raw_value} ->
-        with {_, type, opts} <- Querex.SchemaHelpers.get_field(context.schema, column),
-             {:ok, value} <- Querex.Caster.cast(type, raw_value, opts) do
+        with {_, type, opts} <- Querie.SchemaHelpers.get_field(context.schema, column),
+             {:ok, value} <- Querie.Caster.cast(type, raw_value, opts) do
           {:ok, {op, column, value}}
         else
           _ -> {:error, {column, "is invalid"}}
@@ -103,7 +103,7 @@ defmodule Querex.Parser do
     validation_data =
       context.sort_params
       |> Enum.map(fn {:sort, key, direction} ->
-        with {_, true} <- {:column, key in Querex.SchemaHelpers.fields(context.schema)},
+        with {_, true} <- {:column, key in Querie.SchemaHelpers.fields(context.schema)},
              {_, true} <- {:direction, direction in ~w(asc desc)} do
           {:sort, key, String.to_atom(direction)}
         else

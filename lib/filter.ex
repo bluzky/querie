@@ -1,4 +1,4 @@
-defmodule Querex.Filter do
+defmodule Querie.Filter do
   import Ecto.Query
 
   @doc """
@@ -22,7 +22,10 @@ defmodule Querex.Filter do
   # id = 10 and not (type = "work") and (team_id = 10 or (team_id = 11 and role = "manager" ))
   """
   def apply(query, filters) when is_list(filters) or is_map(filters) do
-    # build query
+    # skip field starts with underscore
+    filters =
+      Enum.reject(filters, fn {_, column, _} -> String.starts_with?(to_string(column), "_") end)
+
     d_query = filter(:and, filters)
     where(query, [q], ^d_query)
   end
@@ -70,12 +73,12 @@ defmodule Querex.Filter do
     dynamic([q], field(q, ^column) in ^values)
   end
 
-  def filter(:is, {column, value}) do
-    filter(column, value)
-  end
-
   def filter(:is, {column, nil}) do
     dynamic([q], is_nil(field(q, ^column)))
+  end
+
+  def filter(:is, {column, value}) do
+    filter(column, value)
   end
 
   def filter(_op, {_column, nil}) do
