@@ -57,7 +57,7 @@ defmodule Querie.Parser do
   end
 
   defp new_context(params, schema) do
-    sort_params = Enum.filter(params, fn {op, _, _} -> op == :sort end)
+    sort_params = Enum.filter(params, fn {op, _} -> op == :sort end)
     filter_params = params -- sort_params
 
     %Querie.ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
@@ -67,11 +67,11 @@ defmodule Querie.Parser do
     case String.split(key, "__") do
       [field, op] ->
         if op in @supported_ops do
-          {String.to_atom(op), String.to_atom(field), value}
+          {String.to_atom(op), {String.to_atom(field), value}}
         end
 
       [field] ->
-        {:is, String.to_atom(field), value}
+        {:is, {String.to_atom(field), value}}
 
       _ ->
         nil
@@ -81,10 +81,10 @@ defmodule Querie.Parser do
   defp parse_value(context) do
     parsed_data =
       context.filter_params
-      |> Enum.map(fn {op, column, raw_value} ->
+      |> Enum.map(fn {op, {column, raw_value}} ->
         with {_, type, opts} <- Querie.SchemaHelpers.get_field(context.schema, column),
              {:ok, value} <- Querie.Caster.cast(type, raw_value, opts) do
-          {:ok, {op, column, value}}
+          {:ok, {op, {column, value}}}
         else
           _ -> {:error, {column, "is invalid"}}
         end
@@ -102,10 +102,10 @@ defmodule Querie.Parser do
   defp validate_operator(%{valid?: true} = context) do
     validation_data =
       context.sort_params
-      |> Enum.map(fn {:sort, key, direction} ->
+      |> Enum.map(fn {:sort, {key, direction}} ->
         with {_, true} <- {:column, key in Querie.SchemaHelpers.fields(context.schema)},
              {_, true} <- {:direction, direction in ~w(asc desc)} do
-          {:sort, key, String.to_atom(direction)}
+          {:sort, {key, String.to_atom(direction)}}
         else
           {:column, _} -> {:error, {key, "is not sortable"}}
           {:direction, _} -> {:error, {key, "sort direction is invalid"}}
