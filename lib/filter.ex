@@ -23,11 +23,19 @@ defmodule Querie.Filter do
   """
   def apply(query, filters) when is_list(filters) or is_map(filters) do
     # skip field starts with underscore
-    filters =
-      Enum.reject(filters, fn {_, {column, _}} -> String.starts_with?(to_string(column), "_") end)
+    sort_and_filter =
+      filters
+      |> Enum.reject(fn
+        {_, {column, _}} -> String.starts_with?(to_string(column), "_")
+        _ -> false
+      end)
+      |> Enum.group_by(fn {op, _} -> (op == :sort && :sort) || :filter end)
 
-    d_query = filter(:and, filters)
-    where(query, [q], ^d_query)
+    d_query = filter(:and, sort_and_filter[:filter] || [])
+
+    query
+    |> where([q], ^d_query)
+    |> sort(sort_and_filter[:sort])
   end
 
   @doc """
@@ -138,5 +146,19 @@ defmodule Querie.Filter do
 
   def filter(column, value) do
     filter(:is, {column, value})
+  end
+
+  def sort(query, fields) do
+    if is_nil(fields) or Enum.empty?(fields) do
+      query
+    else
+      order =
+        fields
+        |> Enum.map(fn {_, {column, direction}} ->
+          {direction, column}
+        end)
+
+      order_by(query, ^order)
+    end
   end
 end

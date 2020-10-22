@@ -9,28 +9,9 @@ defmodule Querie.ParseContext do
             schema: %{}
 end
 
-defmodule Querie.SchemaHelpers do
-  def get_field(schema, field) do
-    field_def = Map.get(schema, field)
-
-    if field_def do
-      {type, opts} =
-        if is_atom(field_def) or is_tuple(field_def) do
-          {field_def, []}
-        else
-          Keyword.pop(field_def, :type)
-        end
-
-      {field, type, opts}
-    end
-  end
-
-  def fields(schema) do
-    Map.keys(schema)
-  end
-end
-
 defmodule Querie.Parser do
+  alias Querie.SchemaHelpers
+  alias Querie.ParseContext
   @supported_ops ~w(lt gt ge le is ne in contains icontains between ibetween sort has)
 
   @doc """
@@ -60,7 +41,7 @@ defmodule Querie.Parser do
     sort_params = Enum.filter(params, fn {op, _} -> op == :sort end)
     filter_params = params -- sort_params
 
-    %Querie.ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
+    %ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
   end
 
   defp parse_condition({key, value}) do
@@ -78,24 +59,27 @@ defmodule Querie.Parser do
     end
   end
 
-  defp parse_value(context) do
-    parsed_data =
-      context.filter_params
-      |> Enum.map(fn {op, {column, raw_value}} ->
-        with {_, type, opts} <- Querie.SchemaHelpers.get_field(context.schema, column),
-             {:ok, value} <- Querie.Caster.cast(type, raw_value, opts) do
-          {:ok, {op, {column, value}}}
-        else
-          _ -> {:error, {column, "is invalid"}}
-        end
-      end)
+  defp parse_value(%{filter_params: params} = context) do
+    data =
+      params
+      |> Enum.map(&cast_field_value(&1, context.schema))
 
-    errors = collect_error(parsed_data)
+    errors = collect_error(data)
 
     if length(errors) > 0 do
       struct(context, valid?: false, errors: errors)
     else
-      struct(context, filter_data: collect_data(parsed_data))
+      struct(context, filter_data: collect_data(data))
+    end
+  end
+
+  defp cast_field_value({op, {column, raw_value}}, schema) do
+    with {_, type, opts} <- SchemaHelpers.get_field(schema, column),
+         type <- (op in ~w(between ibetween)a && {:range, type}) || type,
+         {:ok, value} <- Querie.Caster.cast(type, raw_value, opts) do
+      {:ok, {op, {column, value}}}
+    else
+      _ -> {:error, {column, "is invalid"}}
     end
   end
 
@@ -103,9 +87,9 @@ defmodule Querie.Parser do
     validation_data =
       context.sort_params
       |> Enum.map(fn {:sort, {key, direction}} ->
-        with {_, true} <- {:column, key in Querie.SchemaHelpers.fields(context.schema)},
+        with {_, true} <- {:column, key in SchemaHelpers.fields(context.schema)},
              {_, true} <- {:direction, direction in ~w(asc desc)} do
-          {:sort, {key, String.to_atom(direction)}}
+          {:ok, {:sort, {key, String.to_atom(direction)}}}
         else
           {:column, _} -> {:error, {key, "is not sortable"}}
           {:direction, _} -> {:error, {key, "sort direction is invalid"}}
@@ -121,7 +105,7 @@ defmodule Querie.Parser do
     end
   end
 
-  defp validate_operator(rs), do: rs
+  defp validate_operator(context), do: context
 
   defp finalize_result(%{valid?: true} = context) do
     {:ok, context.filter_data ++ context.sort_data}
