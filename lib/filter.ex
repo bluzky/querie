@@ -24,7 +24,7 @@ defmodule Querie.Filter do
   def apply(query, filters) when is_list(filters) or is_map(filters) do
     # skip field starts with underscore
     filters =
-      Enum.reject(filters, fn {_, column, _} -> String.starts_with?(to_string(column), "_") end)
+      Enum.reject(filters, fn {_, {column, _}} -> String.starts_with?(to_string(column), "_") end)
 
     d_query = filter(:and, filters)
     where(query, [q], ^d_query)
