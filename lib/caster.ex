@@ -9,19 +9,25 @@ defmodule Querie.Caster do
   cast range with object
   %{from => val, to => val}
   """
-  def cast({:range, :date}, values, opts) when is_map(values) do
-    with %{"min" => min, "max" => max} <- values do
-      cast({:range, :date}, [min, max], opts)
-    else
-      _ -> :error
+  def cast({:range, type}, values, opts) when is_map(values) do
+    case values do
+      %{"min" => min, "max" => max} ->
+        cast({:range, type}, [min, max], opts)
+
+      _ ->
+        :error
     end
   end
 
-  def cast({:range, :date}, values, opts), do: cast_array(:date, values, opts)
+  def cast({:range, type}, value, opts) when is_binary(value) do
+    separator = Keyword.get(opts, :separator, ",")
+    parts = String.split(value, separator)
+    cast({:range, type}, parts, opts)
+  end
 
-  def cast({:range, type}, values, _opts) do
+  def cast({:range, type}, values, opts) do
     if length(values) == 2 do
-      Ecto.Type.cast({:array, type}, values)
+      cast_array(type, values, opts)
     else
       :error
     end

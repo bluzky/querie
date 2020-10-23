@@ -25,7 +25,29 @@ defmodule QuerieTest do
     assert Enum.find_value(data, false, fn {field, _} -> field == :name end)
   end
 
-  test "parse integer range" do
+  test "parse integer range by map" do
+    schema = %{
+      age: {:range, :integer}
+    }
+
+    params = %{"age" => %{"min" => 18, "max" => 45}}
+    {code, data} = Querie.Parser.parse(schema, params)
+    assert code == :ok
+    assert [{:is, {:age, [18, 45]}} | _] = data
+  end
+
+  test "parse integer range by list" do
+    schema = %{
+      age: {:range, :integer}
+    }
+
+    params = %{"age" => [18, "45"]}
+    {code, data} = Querie.Parser.parse(schema, params)
+    assert code == :ok
+    assert [{:is, {:age, [18, 45]}} | _] = data
+  end
+
+  test "parse integer range with default separator" do
     schema = %{
       age: {:range, :integer}
     }
@@ -55,7 +77,7 @@ defmodule QuerieTest do
     params = %{"date" => "2020-10-10,2020-10-20"}
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :ok
-    assert [{:is, {:date, [~D[2020-10-10], ~D[2020-10-20]]}} | _] = data
+    assert [{:is, {:date, [~N[2020-10-10 00:00:00], ~N[2020-10-20 00:00:00]]}} | _] = data
   end
 
   test "parse operator" do
@@ -63,7 +85,7 @@ defmodule QuerieTest do
       age: :integer
     }
 
-    Enum.each(~w(lt gt ge le is ne in contains icontains between ibetween)a, fn op ->
+    Enum.each(~w(lt gt ge le is ne in contains icontains)a, fn op ->
       params = %{"age__#{op}" => "20"}
       {code, data} = Querie.Parser.parse(schema, params)
       assert code == :ok
