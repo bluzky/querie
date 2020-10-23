@@ -106,7 +106,8 @@ defmodule Querie.Parser do
     with {:ok, schema} <- Keyword.fetch(opts, :schema),
          {:ok, model} <- Keyword.fetch(opts, :model),
          {:ok, casted_value} <- parse_with_schema(raw_value, schema) do
-      {:ok, {model, casted_value}}
+      opts = Keyword.drop(opts, [:schema])
+      {:ok, {model, casted_value, opts}}
     end
   end
 

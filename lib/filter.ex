@@ -173,7 +173,7 @@ defmodule Querie.Filter do
   def join_ref(query, nil), do: query
 
   def join_ref(query, refs) when is_list(refs) do
-    Enum.reduce(refs, query, fn {_, {_, ref_filter}}, query ->
+    Enum.reduce(refs, query, fn {_, ref_filter}, query ->
       join_ref(query, ref_filter)
     end)
   end
