@@ -23,19 +23,27 @@ defmodule Querie.Filter do
   """
   def apply(query, filters) when is_list(filters) or is_map(filters) do
     # skip field starts with underscore
-    sort_and_filter =
+    grouped_by_type =
       filters
       |> Enum.reject(fn
         {_, {column, _}} -> String.starts_with?(to_string(column), "_")
         _ -> false
       end)
-      |> Enum.group_by(fn {op, _} -> (op == :sort && :sort) || :filter end)
+      |> Enum.group_by(fn {operator, _} ->
+        # group type of operator sort, ref and filter for different logic
+        if operator in [:sort, :ref] do
+          operator
+        else
+          :filter
+        end
+      end)
 
-    d_query = filter(:and, sort_and_filter[:filter] || [])
+    d_query = filter(:and, grouped_by_type[:filter] || [])
 
     query
     |> where([q], ^d_query)
-    |> sort(sort_and_filter[:sort])
+    |> sort(grouped_by_type[:sort])
+    |> join_ref(grouped_by_type[:ref])
   end
 
   @doc """
@@ -161,4 +169,22 @@ defmodule Querie.Filter do
       order_by(query, ^order)
     end
   end
+
+  def join_ref(query, nil), do: query
+
+  def join_ref(query, refs) when is_list(refs) do
+    Enum.reduce(refs, query, fn {_, {_, ref_filter}}, query ->
+      join_ref(query, ref_filter)
+    end)
+  end
+
+  def join_ref(query, {column, {model, filter, opts}}) do
+    foreign_key = Keyword.get(opts, :foreign_key, :"#{column}_id")
+    references = Keyword.get(opts, :references, :id)
+
+    ref_query = __MODULE__.apply(model, filter)
+    join(query, :inner, [a], b in ^ref_query, on: field(a, ^foreign_key) == field(b, ^references))
+  end
+
+  def join_ref(query, _), do: query
 end

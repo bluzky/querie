@@ -12,7 +12,7 @@ end
 defmodule Querie.Parser do
   alias Querie.SchemaHelpers
   alias Querie.ParseContext
-  @supported_ops ~w(lt gt ge le is ne in contains icontains between ibetween sort has)
+  @supported_ops ~w(lt gt ge le is ne in contains icontains between ibetween sort has ref)
 
   @doc """
   Parse params and return
@@ -27,28 +27,32 @@ defmodule Querie.Parser do
   name: :string
   }
   """
-  def parse(schema, params) do
+  def parse(schema, raw_params) do
+    raw_params
+    |> split_key_and_operator
+    |> parse_with_schema(schema)
+  end
+
+  def parse_with_schema(params, schema) do
     params
-    |> Enum.map(&parse_condition/1)
-    |> Enum.reject(&is_nil(&1))
     |> new_context(schema)
-    |> parse_value
+    |> do_parse
     |> validate_operator
     |> finalize_result
   end
 
-  defp new_context(params, schema) do
-    sort_params = Enum.filter(params, fn {op, _} -> op == :sort end)
-    filter_params = params -- sort_params
-
-    %ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
-  end
-
-  defp parse_condition({key, value}) do
+  defp split_key_and_operator({key, value}) do
     case String.split(key, "__") do
-      [field, op] ->
-        if op in @supported_ops do
-          {String.to_atom(op), {String.to_atom(field), value}}
+      [field, operator] ->
+        case operator do
+          "ref" ->
+            {String.to_atom(operator), {String.to_atom(field), split_key_and_operator(value)}}
+
+          op when op in @supported_ops ->
+            {String.to_atom(op), {String.to_atom(field), value}}
+
+          _ ->
+            nil
         end
 
       [field] ->
@@ -59,10 +63,21 @@ defmodule Querie.Parser do
     end
   end
 
-  defp parse_value(%{filter_params: params} = context) do
-    data =
-      params
-      |> Enum.map(&cast_field_value(&1, context.schema))
+  defp split_key_and_operator(params) do
+    params
+    |> Enum.map(&split_key_and_operator/1)
+    |> Enum.reject(&is_nil(&1))
+  end
+
+  defp new_context(params, schema) do
+    sort_params = Enum.filter(params, fn {op, _} -> op == :sort end)
+    filter_params = params -- sort_params
+
+    %ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
+  end
+
+  defp do_parse(context) do
+    data = cast_schema(context.schema, context.filter_params)
 
     errors = collect_error(data)
 
@@ -73,14 +88,35 @@ defmodule Querie.Parser do
     end
   end
 
-  defp cast_field_value({op, {column, raw_value}}, schema) do
-    with {_, type, opts} <- SchemaHelpers.get_field(schema, column),
-         type <- (op in ~w(between ibetween)a && {:range, type}) || type,
-         {:ok, value} <- Querie.Caster.cast(type, raw_value, opts) do
-      {:ok, {op, {column, value}}}
-    else
-      _ -> {:error, {column, "is invalid"}}
+  def cast_schema(schema, params) do
+    params
+    |> Enum.map(fn {operator, {column, _value}} = field ->
+      with field_def <- SchemaHelpers.get_field(schema, column),
+           false <- is_nil(field_def),
+           {:ok, casted_value} <- cast_field(field, field_def) do
+        {:ok, {operator, {column, casted_value}}}
+      else
+        _ -> {:error, {column, "is invalid"}}
+      end
+    end)
+  end
+
+  # cast nested schema
+  defp cast_field({:ref, {_, raw_value}}, {_, _, opts}) do
+    with {:ok, schema} <- Keyword.fetch(opts, :schema),
+         {:ok, model} <- Keyword.fetch(opts, :model),
+         {:ok, casted_value} <- parse_with_schema(raw_value, schema) do
+      {:ok, {model, casted_value}}
     end
+  end
+
+  defp cast_field({operator, {_, raw_value}}, {_, type, opts})
+       when operator in ~w(between ibetween)a do
+    Querie.Caster.cast({:range, type}, raw_value, opts)
+  end
+
+  defp cast_field({_, {_, raw_value}}, {_, type, opts}) do
+    Querie.Caster.cast(type, raw_value, opts)
   end
 
   defp validate_operator(%{valid?: true} = context) do
