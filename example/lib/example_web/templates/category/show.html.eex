@@ -1,0 +1,23 @@
+<h1>Show Category</h1>
+
+<ul>
+
+  <li>
+    <strong>Name:</strong>
+    <%= @category.name %>
+  </li>
+
+  <li>
+    <strong>Slug:</strong>
+    <%= @category.slug %>
+  </li>
+
+  <li>
+    <strong>Is enabled:</strong>
+    <%= @category.is_enabled %>
+  </li>
+
+</ul>
+
+<span><%= link "Edit", to: Routes.category_path(@conn, :edit, @category) %></span>
+<span><%= link "Back", to: Routes.category_path(@conn, :index) %></span>

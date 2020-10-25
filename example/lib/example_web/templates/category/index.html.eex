@@ -1,0 +1,30 @@
+<h1>Listing Categories</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Slug</th>
+      <th>Is enabled</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for category <- @categories do %>
+    <tr>
+      <td><%= category.name %></td>
+      <td><%= category.slug %></td>
+      <td><%= category.is_enabled %></td>
+
+      <td>
+        <span><%= link "Show", to: Routes.category_path(@conn, :show, category) %></span>
+        <span><%= link "Edit", to: Routes.category_path(@conn, :edit, category) %></span>
+        <span><%= link "Delete", to: Routes.category_path(@conn, :delete, category), method: :delete, data: [confirm: "Are you sure?"] %></span>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
+
+<span><%= link "New Category", to: Routes.category_path(@conn, :new) %></span>

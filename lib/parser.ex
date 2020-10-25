@@ -88,18 +88,29 @@ defmodule Querie.Parser do
     end
   end
 
+  @doc """
+  cast value based on operator and schema  field declaration
+  if field is not define, skip it
+  if field cast return skip then skip it too
+  """
   def cast_schema(schema, params) do
     params
     |> Enum.map(fn {operator, {column, _value}} = field ->
       with field_def <- SchemaHelpers.get_field(schema, column),
-           false <- is_nil(field_def),
+           {:field_def_nil, false} <- {:field_def_nil, is_nil(field_def)},
            {:ok, casted_value} <- cast_field(field, field_def) do
         {:ok, {operator, {column, casted_value}}}
       else
+        {:field_def_nil, true} -> nil
+        :skip -> nil
         _ -> {:error, {column, "is invalid"}}
       end
     end)
+    |> Enum.reject(&is_nil/1)
   end
+
+  # skip empty value
+  defp cast_field({_, {_, ""}}, _), do: :skip
 
   # cast nested schema
   defp cast_field({:ref, {_, raw_value}}, {_, _, opts}) do

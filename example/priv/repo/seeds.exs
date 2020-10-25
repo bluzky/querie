@@ -89,7 +89,8 @@ defmodule Seeds do
         content: "Hi this is a sample post content by #{author.first_name}. Edit me",
         state: Enum.random(Post.state_enum()),
         author_id: author.id,
-        category_id: category.id
+        category_id: category.id,
+        view_count: :rand.uniform(100)
       }
       |> Content.create_post()
     end)

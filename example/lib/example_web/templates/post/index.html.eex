@@ -1,0 +1,91 @@
+<h1>Listing Posts</h1>
+
+<form>
+  <div>
+    <label>Title contains ignore case</label>
+    <input type="text" name="title__icontains" value="<%= @conn.params["title__icontains"] %>">
+  </div>
+
+  <div>
+    <label>View_count between inclusive</label>
+    <table>
+      <tr>
+        <td>
+          <label>Min</label>
+          <input type="number" name="view_count__ibetween[min]" value="<%= @conn.params["view_count__ibetween"]["min"] %>">
+        </td>
+        <td>
+          <label>Max</label>
+          <input type="number" name="view_count__ibetween[max]" value="<%= @conn.params["view_count__ibetween"]["max"] %>">
+        </td>
+      </tr>
+    </table>
+
+  </div>
+
+  <div>
+    <label>Post state</label>
+    <select  name="state" value="<%= @conn.params["state"] %>">
+      <option value="">All state</option>
+      <%= for state <- Example.Content.Post.state_enum() do %>
+        <option value="<%= state %>"><%= state %></option>
+    <% end %>
+    </select>
+  </div>
+
+  <div>
+    <label>author email contains</label>
+    <input type="text" name="author__ref[email__icontains]" value="<%= @conn.params["author__ref"]["email__icontains"] %>">
+  </div>
+
+  <div>
+    <label>Category name contains case sensitive</label>
+    <input type="text" name="category__ref[name__contains]" value="<%= @conn.params["category__ref"]["name__contains"] %>">
+  </div>
+  <button type="submit">Apply filter</button>
+</form>
+<%= if length(@posts) > 0 do %>
+<table>
+  <thead>
+    <tr>
+      <th>title</th>
+      <th>view_count</th>
+      <th>author email</th>
+      <th>category name</th>
+      <th>state</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for post <- @posts do %>
+    <tr>
+      <td><%= link post.title,  to: Routes.post_path(@conn, :show, post) %></td>
+      <td><%= post.view_count %></td>
+      <td><%= post.author.email %></td>
+      <td><%= post.category.name %></td>
+      <td><%= post.state %></td>
+
+      <td>
+        <span><%= link "Edit", to: Routes.post_path(@conn, :edit, post) %></span>
+        <span><%= link "Delete", to: Routes.post_path(@conn, :delete, post), method: :delete, data: [confirm: "Are you sure?"] %></span>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
+<% end %>
+
+<%= if @errors do %>
+  <h3 style="color: orange">ERRORS</h3>
+  <table>
+    <%= for {field, error} <- @errors  do %>
+      <tr>
+        <th><%= field %></th>
+        <td><%= error %></td>
+      </tr>
+  <% end %>
+  </table>
+  <%  end %>
+
+<span><%= link "New Post", to: Routes.post_path(@conn, :new) %></span>

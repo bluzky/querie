@@ -116,9 +116,7 @@ defmodule QuerieTest do
       }
     }
 
-    {code, data} =
-      Querie.Parser.parse(schema, params)
-      |> IO.inspect()
+    {code, data} = Querie.Parser.parse(schema, params)
 
     assert code == :ok
   end

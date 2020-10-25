@@ -10,6 +10,7 @@ defmodule Example.Content.Post do
     field(:slug, :string)
     field(:state, :string, default: "draft")
     field(:title, :string)
+    field(:view_count, :integer, default: 0)
     belongs_to(:category, Example.PostMeta.Category)
     belongs_to(:author, Example.Account.User)
 
@@ -19,7 +20,16 @@ defmodule Example.Content.Post do
   @doc false
   def changeset(post, attrs) do
     post
-    |> cast(attrs, [:title, :slug, :cover, :content, :state, :author_id, :category_id])
+    |> cast(attrs, [
+      :title,
+      :slug,
+      :cover,
+      :content,
+      :state,
+      :author_id,
+      :category_id,
+      :view_count
+    ])
     |> validate_required([:title, :content, :state])
   end
 end

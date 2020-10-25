@@ -126,15 +126,28 @@ defmodule Querie.Filter do
   end
 
   def filter(:between, {column, [lower, upper]}) do
-    dynamic([q], field(q, ^column) > ^lower and field(q, ^column) < ^upper)
+    case [lower, upper] do
+      [nil, nil] -> nil
+      [nil, upper] -> dynamic([q], field(q, ^column) < ^upper)
+      [lower, nil] -> dynamic([q], field(q, ^column) > ^lower)
+      _ -> dynamic([q], field(q, ^column) > ^lower and field(q, ^column) < ^upper)
+    end
   end
 
   @doc """
   between inclusive
   """
   def filter(:ibetween, {column, [lower, upper]}) do
-    dynamic([q], field(q, ^column) >= ^lower and field(q, ^column) <= ^upper)
+    case [lower, upper] do
+      [nil, nil] -> nil
+      [nil, upper] -> dynamic([q], field(q, ^column) <= ^upper)
+      [lower, nil] -> dynamic([q], field(q, ^column) >= ^lower)
+      _ -> dynamic([q], field(q, ^column) >= ^lower and field(q, ^column) <= ^upper)
+    end
   end
+
+  def filter(:ibetween, _), do: nil
+  def filter(:between, _), do: nil
 
   def filter(:has, {column, value}) do
     dynamic([q], ^value in field(q, ^column))

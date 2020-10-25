@@ -10,13 +10,7 @@ defmodule Querie.Caster do
   %{from => val, to => val}
   """
   def cast({:range, type}, values, opts) when is_map(values) do
-    case values do
-      %{"min" => min, "max" => max} ->
-        cast({:range, type}, [min, max], opts)
-
-      _ ->
-        :error
-    end
+    cast({:range, type}, [values["min"], values["max"]], opts)
   end
 
   def cast({:range, type}, value, opts) when is_binary(value) do
@@ -26,12 +20,21 @@ defmodule Querie.Caster do
   end
 
   def cast({:range, type}, values, opts) do
-    if length(values) == 2 do
-      cast_array(type, values, opts)
+    with true <- length(values) == 2,
+         {:ok, [min, max]} = ok <- cast_range(type, values, opts) do
+      if is_nil(min) and is_nil(max) do
+        {:ok, nil}
+      else
+        ok
+      end
     else
-      :error
+      _ ->
+        :error
     end
   end
+
+  # empty string is casted to nil
+  def cast(_, "", _), do: {:ok, nil}
 
   def cast(:date, value, opts) do
     format = Keyword.get(opts, :format, "{YYYY}-{0M}-{0D}")
@@ -46,12 +49,12 @@ defmodule Querie.Caster do
     Ecto.Type.cast(type, value)
   end
 
-  def cast_array(type, values, opts) do
+  def cast_range(type, values, opts) do
     values
     |> Enum.reduce({true, []}, fn value, {valid, casted_values} ->
       case cast(type, value, opts) do
         {:ok, val} -> {valid, [val | casted_values]}
-        _ -> {false, casted_values}
+        err -> {false, [err | casted_values]}
       end
     end)
     |> case do

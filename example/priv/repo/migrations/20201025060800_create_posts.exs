@@ -8,6 +8,7 @@ defmodule Example.Repo.Migrations.CreatePosts do
       add :cover, :string
       add :content, :string
       add :state, :string
+      add :view_count, :integer
       add :category_id, references(:categories, on_delete: :nothing)
       add :author_id, references(:users, on_delete: :nothing)
 
