@@ -31,7 +31,9 @@ If you want to add more filter criteria? Don't worry, you only need to change th
 ### Install
 Add to your `mix.exs` file:
 
-`{:querie, "~> 0.1"}`
+```elixir
+{:querie, "~> 0.1"}
+```
 
 ### Query on a single table
 There are 3 steps to make it work
@@ -170,7 +172,7 @@ This is list of supported operators with mapping key word.
 | operator | mapping keyword |
 |--|--|
 | = | `is` or omit |
-| != | `ne` or omit |
+| != | `ne` |
 | > | `gt` |
 | >= | `ge` |
 | < | `lt` |
