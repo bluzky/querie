@@ -7,7 +7,12 @@ defmodule Querie.MixProject do
       version: "0.1.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      package: package(),
+      name: "Querie",
+      description: description(),
+      source_url: "https://github.com/bluzky/tarams",
+      docs: docs()
     ]
   end
 
@@ -15,6 +20,25 @@ defmodule Querie.MixProject do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  defp package() do
+    [
+      maintainers: ["Dung Nguyen"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/bluzky/querie"}
+    ]
+  end
+
+  defp description() do
+    "Query database directly from URL"
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      extras: ["README.md"]
     ]
   end
 
