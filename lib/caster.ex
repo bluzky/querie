@@ -36,17 +36,14 @@ defmodule Querie.Caster do
   # empty string is casted to nil
   def cast(_, "", _), do: {:ok, nil}
 
-  def cast(:date, value, opts) do
-    format = Keyword.get(opts, :format, "{YYYY}-{0M}-{0D}")
+  def cast(type, value, opts) do
+    cast_func = Keyword.get(opts, :cast_func)
 
-    case Timex.parse(value, format) do
-      {:error, _} -> :error
-      ok -> ok
+    if is_function(cast_func) do
+      cast_func.(value)
+    else
+      Ecto.Type.cast(type, value)
     end
-  end
-
-  def cast(type, value, _opts) do
-    Ecto.Type.cast(type, value)
   end
 
   def cast_range(type, values, opts) do
