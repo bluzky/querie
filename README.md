@@ -37,7 +37,9 @@ If you want to add more filter criteria? Don't worry, you only need to change th
 
 Add to your `mix.exs` file:
 
-`{:querie, "~> 0.1"}`
+```elixir
+{:querie, "~> 0.1"}
+```
 
 ### Query on a single table
 
