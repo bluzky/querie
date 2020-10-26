@@ -1,8 +1,7 @@
 <div style="text-align: center">
 <img src="docs/logo.png" width="200">
-<h3>Query database directly from URL</h3>
+<h3>Compose Ecto query from the client side</h3>
 </div>
-Query database directly from your url
 
 ## Table of content
 
