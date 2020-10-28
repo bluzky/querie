@@ -46,17 +46,17 @@ defmodule Querie.Parser do
       [field, operator] ->
         case operator do
           "ref" ->
-            {String.to_atom(operator), {String.to_atom(field), split_key_and_operator(value)}}
+            {:ref, {field, split_key_and_operator(value)}}
 
           op when op in @supported_ops ->
-            {String.to_atom(op), {String.to_atom(field), value}}
+            {String.to_atom(op), {field, value}}
 
           _ ->
             nil
         end
 
       [field] ->
-        {:is, {String.to_atom(field), value}}
+        {:is, {field, value}}
 
       _ ->
         nil
@@ -99,7 +99,8 @@ defmodule Querie.Parser do
       with field_def <- SchemaHelpers.get_field(schema, column),
            {:field_def_nil, false} <- {:field_def_nil, is_nil(field_def)},
            {:ok, casted_value} <- cast_field(field, field_def) do
-        {:ok, {operator, {column, casted_value}}}
+        # use String.to_existing_atom, here we make sure the column atom existed
+        {:ok, {operator, {String.to_existing_atom(column), casted_value}}}
       else
         {:field_def_nil, true} -> nil
         :skip -> nil
