@@ -22,7 +22,7 @@ defmodule QuerieTest do
     params = %{"name" => 123}
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :error
-    assert Enum.find_value(data, false, fn {field, _} -> field == :name end)
+    assert Enum.find_value(data, false, fn {field, _} -> field == "name" end)
   end
 
   test "parse integer range by map" do
