@@ -138,7 +138,7 @@ defmodule Querie.Parser do
       |> Enum.map(fn {:sort, {key, direction}} ->
         with {_, true} <- {:column, key in SchemaHelpers.fields(context.schema)},
              {_, true} <- {:direction, direction in ~w(asc desc)} do
-          {:ok, {:sort, {key, String.to_existing_atom(direction)}}}
+          {:ok, {:sort, {key, String.to_atom(direction)}}}
         else
           {:column, _} -> {:error, {key, "is not sortable"}}
           {:direction, _} -> {:error, {key, "sort direction is invalid"}}
