@@ -11,7 +11,7 @@ defmodule QuerieTest do
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :ok
     assert is_list(data)
-    assert [{:is, {:name, "dzung"}} | _] = data
+    assert %{filter: {:is, {:name, "dzung"}}} = data
   end
 
   test "parse string invalid" do
@@ -33,7 +33,7 @@ defmodule QuerieTest do
     params = %{"age" => %{"min" => 18, "max" => 45}}
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :ok
-    assert [{:is, {:age, [18, 45]}} | _] = data
+    assert %{filter: {:is, {:age, [18, 45]}}} = data
   end
 
   test "parse integer range by list" do
@@ -44,7 +44,7 @@ defmodule QuerieTest do
     params = %{"age" => [18, "45"]}
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :ok
-    assert [{:is, {:age, [18, 45]}} | _] = data
+    assert %{filter: {:is, {:age, [18, 45]}}} = data
   end
 
   test "parse integer range with default separator" do
@@ -55,7 +55,7 @@ defmodule QuerieTest do
     params = %{"age" => "18,45"}
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :ok
-    assert [{:is, {:age, [18, 45]}} | _] = data
+    assert %{filter: {:is, {:age, [18, 45]}}} = data
   end
 
   test "parse integer range with custom separator" do
@@ -66,7 +66,7 @@ defmodule QuerieTest do
     params = %{"age" => "18+45"}
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :ok
-    assert [{:is, {:age, [18, 45]}} | _] = data
+    assert %{filter: {:is, {:age, [18, 45]}}} = data
   end
 
   test "parse date range with custom cast function" do
@@ -80,7 +80,8 @@ defmodule QuerieTest do
     params = %{"date" => "2020-10-10,2020-10-20"}
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :ok
-    assert [{:is, {:date, [~N[2020-10-10 00:00:00], ~N[2020-10-20 00:00:00]]}} | _] = data
+
+    assert %{filter: {:is, {:date, [~N[2020-10-10 00:00:00], ~N[2020-10-20 00:00:00]]}}} = data
   end
 
   test "parse with custom cast function fail" do
@@ -107,7 +108,7 @@ defmodule QuerieTest do
     params = %{"date" => "2020-10-20"}
     {code, data} = Querie.Parser.parse(schema, params)
     assert code == :ok
-    assert [{:is, {:date, ~D[2020-10-20]}} | _] = data
+    assert %{filter: {:is, {:date, ~D[2020-10-20]}}} = data
   end
 
   test "parse operator" do
@@ -119,7 +120,7 @@ defmodule QuerieTest do
       params = %{"age__#{op}" => "20"}
       {code, data} = Querie.Parser.parse(schema, params)
       assert code == :ok
-      assert [{^op, {:age, 20}} | _] = data
+      assert [%{filter: {^op, {:age, 20}}} | _] = data
     end)
   end
 
