@@ -166,20 +166,24 @@ defmodule Querie.Parser do
   defp get_sort_options(schema) do
     Enum.reduce(schema, [], fn {column, opts}, acc ->
       with true <- is_list(opts) do
-        [{column, {Keyword.get(opts, :sort_default), Keyword.get(opts, :sort_order)}} | acc]
+        [{column, Keyword.get(opts, :sort_default), Keyword.get(opts, :sort_priority)} | acc]
       else
         _ -> acc
       end
     end)
-    |> Enum.reject(fn {_, {default, order}} -> is_nil(default) and is_nil(order) end)
+    |> Enum.reject(fn {_, default, order} -> is_nil(default) and is_nil(order) end)
   end
 
+  # each sort field is a tuple of {column, direction, priority}
+  # this function merge default sort and user_defined sort
+  # then remove duplicated line and sort by priority smallest first
+  # then build tuple {column, direction} for each field
   defp merge_sort_option(user_defined, default) do
     # get sort priority
     user_defined =
       user_defined
       |> Enum.map(fn {column, dir, _} = item ->
-        case Keyword.get(default, column) do
+        case Enum.find(default, &(elem(&1, 0) == column)) do
           {_, _, priority} -> {column, dir, priority}
           _ -> item
         end
@@ -187,6 +191,8 @@ defmodule Querie.Parser do
 
     (user_defined ++ default)
     |> Enum.uniq_by(&elem(&1, 0))
+    |> Enum.sort_by(&elem(&1, 2))
+    |> Enum.map(fn {k, v, _} -> {k, v} end)
   end
 
   defp finalize_result(%{valid?: true} = context) do

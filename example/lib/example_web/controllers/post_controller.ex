@@ -10,7 +10,7 @@ defmodule ExampleWeb.PostController do
 
   @post_filter_schema %{
     title: :string,
-    view_count: :integer,
+    view_count: [type: :integer, sort_default: :desc],
     state: :string,
     author: [
       type: :ref,

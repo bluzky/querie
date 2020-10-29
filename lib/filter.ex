@@ -24,7 +24,7 @@ defmodule Querie.Filter do
 
   def apply(query, %{filter: filter, sort: sort}) do
     query
-    |> apply(query, filter)
+    |> __MODULE__.apply(filter)
     |> sort(sort)
   end
 
@@ -177,7 +177,7 @@ defmodule Querie.Filter do
     else
       order =
         fields
-        |> Enum.map(fn {_, {column, direction}} ->
+        |> Enum.map(fn {column, direction} ->
           {direction, column}
         end)
 
