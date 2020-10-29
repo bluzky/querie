@@ -36,8 +36,8 @@ defmodule Querie.Parser do
   def parse_with_schema(params, schema) do
     params
     |> new_context(schema)
-    |> do_parse
-    |> validate_operator
+    |> parse_filter
+    |> parse_sort
     |> finalize_result
   end
 
@@ -76,7 +76,7 @@ defmodule Querie.Parser do
     %ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
   end
 
-  defp do_parse(context) do
+  defp parse_filter(context) do
     data = cast_schema(context.schema, context.filter_params)
 
     errors = collect_error(data)
@@ -132,16 +132,16 @@ defmodule Querie.Parser do
     Querie.Caster.cast(type, raw_value, opts)
   end
 
-  defp validate_operator(%{valid?: true} = context) do
+  defp parse_sort(%{valid?: true} = context) do
     validation_data =
       context.sort_params
-      |> Enum.map(fn {:sort, {key, direction}} ->
-        with {_, true} <- {:column, key in SchemaHelpers.fields(context.schema)},
+      |> Enum.map(fn {:sort, {column, direction}} ->
+        with {_, true} <- {:column, column in SchemaHelpers.fields(context.schema)},
              {_, true} <- {:direction, direction in ~w(asc desc)} do
-          {:ok, {:sort, {key, String.to_atom(direction)}}}
+          {:ok, {:sort, {String.to_existing_atom(column), String.to_atom(direction)}}}
         else
-          {:column, _} -> {:error, {key, "is not sortable"}}
-          {:direction, _} -> {:error, {key, "sort direction is invalid"}}
+          {:column, _} -> {:error, {column, "is not sortable"}}
+          {:direction, _} -> {:error, {column, "sort direction is invalid"}}
         end
       end)
 
@@ -150,14 +150,53 @@ defmodule Querie.Parser do
     if length(errors) > 0 do
       struct(context, valid?: false, errors: errors)
     else
-      struct(context, sort_data: collect_data(validation_data))
+      sort_data =
+        collect_data(validation_data)
+        |> Enum.map(fn {_, {column, direction}} -> {column, direction, nil} end)
+
+      defautl_sort = get_sort_options(context.schema)
+
+      sort_data = merge_sort_option(sort_data, defautl_sort)
+      struct(context, sort_data: sort_data)
     end
   end
 
-  defp validate_operator(context), do: context
+  defp parse_sort(context), do: context
+
+  defp get_sort_options(schema) do
+    Enum.reduce(schema, [], fn {column, opts}, acc ->
+      with true <- is_list(opts) do
+        [{column, Keyword.get(opts, :sort_default), Keyword.get(opts, :sort_priority)} | acc]
+      else
+        _ -> acc
+      end
+    end)
+    |> Enum.reject(fn {_, default, order} -> is_nil(default) and is_nil(order) end)
+  end
+
+  # each sort field is a tuple of {column, direction, priority}
+  # this function merge default sort and user_defined sort
+  # then remove duplicated line and sort by priority smallest first
+  # then build tuple {column, direction} for each field
+  defp merge_sort_option(user_defined, default) do
+    # get sort priority
+    user_defined =
+      user_defined
+      |> Enum.map(fn {column, dir, _} = item ->
+        case Enum.find(default, &(elem(&1, 0) == column)) do
+          {_, _, priority} -> {column, dir, priority}
+          _ -> item
+        end
+      end)
+
+    (user_defined ++ default)
+    |> Enum.uniq_by(&elem(&1, 0))
+    |> Enum.sort_by(&elem(&1, 2))
+    |> Enum.map(fn {k, v, _} -> {k, v} end)
+  end
 
   defp finalize_result(%{valid?: true} = context) do
-    {:ok, context.filter_data ++ context.sort_data}
+    {:ok, %{filter: context.filter_data, sort: context.sort_data}}
   end
 
   defp finalize_result(%{valid?: false} = context) do

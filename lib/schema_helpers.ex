@@ -18,5 +18,6 @@ defmodule Querie.SchemaHelpers do
 
   def fields(schema) do
     Map.keys(schema)
+    |> Enum.map(&to_string/1)
   end
 end

@@ -21,6 +21,13 @@ defmodule Querie.Filter do
 
   # id = 10 and not (type = "work") and (team_id = 10 or (team_id = 11 and role = "manager" ))
   """
+
+  def apply(query, %{filter: filter, sort: sort}) do
+    query
+    |> __MODULE__.apply(filter)
+    |> sort(sort)
+  end
+
   def apply(query, filters) when is_list(filters) or is_map(filters) do
     # skip field starts with underscore
     grouped_by_type =
@@ -29,20 +36,15 @@ defmodule Querie.Filter do
         {_, {column, _}} -> String.starts_with?(to_string(column), "_")
         _ -> false
       end)
-      |> Enum.group_by(fn {operator, _} ->
-        # group type of operator sort, ref and filter for different logic
-        if operator in [:sort, :ref] do
-          operator
-        else
-          :filter
-        end
+      |> Enum.group_by(fn
+        {:ref, _} -> :ref
+        _ -> :filter
       end)
 
     d_query = filter(:and, grouped_by_type[:filter] || [])
 
     query
     |> where([q], ^d_query)
-    |> sort(grouped_by_type[:sort])
     |> join_ref(grouped_by_type[:ref])
   end
 
@@ -175,7 +177,7 @@ defmodule Querie.Filter do
     else
       order =
         fields
-        |> Enum.map(fn {_, {column, direction}} ->
+        |> Enum.map(fn {column, direction} ->
           {direction, column}
         end)
 
