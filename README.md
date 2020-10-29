@@ -3,21 +3,46 @@
 <h3>Compose Ecto query from the client side</h3>
 </div>
 
-## Table of content
+### Install
 
-- [What is Querie?](#what-is-querie-)
+Add to your `mix.exs` file:
+
+```elixir
+[
+	{:querie, "~> 0.1"}
+]
+```
+
+
+### This is what `Query` does
+It turns this:
+```
+http://localhost:4000/products?name__ilike=milk&price__ge=32&rating__sort=desc
+```
+
+Into this
+```elixir
+Product
+|> where([p], ilike(p.name, "%milk%") and p.price >= 32)
+|> order_by([desc: :rating])
+```
+
+Cool, right?
+
+## Table of content
+-  [What is Querie?](#what-is-querie-)
 - [What Querie can do?](#what-querie-can-do-)
 - [How to use Querie?](#how-to-use-querie-)
   - [Install](#install)
   - [Query on a single table](#query-on-a-single-table)
   - [Sort query result](#sort-query-result)
   - [Query `between`](#query--between-)
-  - [Query reference tables](#query-reference-tables)
+  - [Join tables](#query-reference-tables)
   - [Custom join field](#custom-join-field)
 - [Supported operators](#supported-operators)
 
-## What is `Querie`?
 
+## What is `Querie`?
 Querie is a library that help you to build the query directly from the URL parameters without writing to much code.
 If you want to add more filter criteria? Don't worry, you only need to change the filter schema.
 
@@ -31,15 +56,6 @@ If you want to add more filter criteria? Don't worry, you only need to change th
 **Especially Querie does not use macro** 😇
 
 ## How to use `Querie`?
-
-### Install
-
-Add to your `mix.exs` file:
-
-```elixir
-{:querie, "~> 0.1"}
-```
-
 ### Query on a single table
 
 There are 3 steps to make it work
