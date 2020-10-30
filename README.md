@@ -9,7 +9,7 @@ Add to your `mix.exs` file:
 
 ```elixir
 [
-	{:querie, "~> 0.1"}
+	{:querie, "~> 0.2"}
 ]
 ```
 
