@@ -22,9 +22,7 @@ http://localhost:4000/products?name__ilike=milk&price__ge=32&rating__sort=desc
 
 Into this
 ```elixir
-Product
-|> where([p], ilike(p.name, "%milk%") and p.price >= 32)
-|> order_by([desc: :rating])
+from(p in Product, where: ilike(p.name, "%milk%") and p.price >= 32, order_by: [desc: :rating])
 ```
 
 Cool, right?
