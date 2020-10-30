@@ -17,7 +17,7 @@ Add to your `mix.exs` file:
 ### This is what `Query` does
 It turns this:
 ```
-http://localhost:4000/products?name__ilike=milk&price__ge=32&rating__sort=desc
+http://localhost:4000/products?name__icontains=milk&price__ge=32&rating__sort=desc
 ```
 
 Into this
