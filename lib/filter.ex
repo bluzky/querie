@@ -116,7 +116,7 @@ defmodule Querie.Filter do
   end
 
   def filter(:le, {column, value}) do
-    dynamic([q], field(q, ^column) > ^value)
+    dynamic([q], field(q, ^column) <= ^value)
   end
 
   def filter(:ne, {column, value}) do
