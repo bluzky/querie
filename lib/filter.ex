@@ -156,7 +156,7 @@ defmodule Querie.Filter do
     dynamic([q], ^value in field(q, ^column))
   end
   
-  def filter(_, {_, nil}}, do: nil
+  def filter(_, {_, nil}}), do: nil
 
   def filter(:contains, {column, value}) do
     dynamic([q], like(field(q, ^column), ^"%#{value}%"))
