@@ -34,6 +34,7 @@ defmodule ExampleWeb.PostController do
     with {:ok, filter} <- Querie.parse(@post_filter_schema, params) do
       posts =
         Querie.filter(Post, filter)
+        |> IO.inspect()
         |> Repo.all()
         |> Repo.preload([:category, :author])
 
