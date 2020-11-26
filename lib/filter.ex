@@ -34,6 +34,7 @@ defmodule Querie.Filter do
       filters
       |> Enum.reject(fn
         {_, {column, _}} -> String.starts_with?(to_string(column), "_")
+        {column, _} -> String.starts_with?(to_string(column), "_")
         _ -> false
       end)
       |> Enum.group_by(fn
@@ -155,7 +156,7 @@ defmodule Querie.Filter do
     dynamic([q], ^value in field(q, ^column))
   end
   
-  def filter(_, {_, nil}}, do: nil
+  def filter(_, {_, nil}), do: nil
 
   def filter(:contains, {column, value}) do
     dynamic([q], like(field(q, ^column), ^"%#{value}%"))
