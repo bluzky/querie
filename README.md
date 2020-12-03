@@ -9,7 +9,7 @@ Add to your `mix.exs` file:
 
 ```elixir
 [
-	{:querie, "~> 0.2"}
+	{:querie, "~> 1.0"}
 ]
 ```
 
@@ -37,6 +37,7 @@ Cool, right?
   - [Query `between`](#query--between-)
   - [Join tables](#query-reference-tables)
   - [Custom join field](#custom-join-field)
+- [Build filter in your code](#filter-directly-from-your-code)
 - [Supported operators](#supported-operators)
 
 
@@ -137,6 +138,17 @@ For example you want to sort by `title` ascending, add this to query: `title__so
 
 Simple, right?
 
+You can set default sort order and sort priority for each field:
+
+```elixir
+%{
+    view_count: [type: :integer, sort_default: :desc, sort_priority: 1]
+    title: [type: :string, sort_default: :asc, sort_priority: 2]
+}
+```
+
+Field with smaller `sort_priority` smaller is sorted first
+
 ### Query `between`
 
 `Query` supports query between `min` and `max` value. It translates `between` to ` > min and < max`. And inclusive version is `ibetween` which translated to ` >= min and <= max`
@@ -198,6 +210,22 @@ You can specify custom join field with 2 options:
 - `foreign_key` default is `[field]_id`. In the example above, it is `author_id`
 - `references` is the key to join on the other table. Default is `id`
 
+
+## Filter directly from your code
+
+You can build filter for `Querie` directly from your code
+
+```elixir
+filters = %{
+    title: {:ilike, "elixir"},
+    tag: "elixir", # query with = operator,
+    category_id: [1, 2], # query with in operator,
+    view_count: {:between, [10, 50]}
+}
+
+Querie.filter(Post, filters}
+```
+
 ## Supported operators
 
 This is list of supported operators with mapping key word.
@@ -205,12 +233,12 @@ This is list of supported operators with mapping key word.
 | operator          | mapping keyword |
 | ----------------- | --------------- |
 | =                 | `is` or omit    |
-| !=                | `ne` or omit    |
+| !=                | `ne`     |
 | >                 | `gt`            |
 | >=                | `ge`            |
 | <                 | `lt`            |
 | <=                | `le`            |
-| like              | `contains`      |
-| ilike             | `icontains`     |
+| like              | `contains` or `like`      |
+| ilike             | `icontains` or `ilike`     |
 | between           | `between`       |
 | inclusive between | `ibetween`      |
