@@ -1,5 +1,6 @@
 defmodule Querie.Filter do
   import Ecto.Query
+  import Kernel, except: [apply: 2, apply: 3]
 
   @doc """
   Apply filter on multiple column
@@ -22,10 +23,10 @@ defmodule Querie.Filter do
   # id = 10 and not (type = "work") and (team_id = 10 or (team_id = 11 and role = "manager" ))
   """
 
-  def apply(query, filter, opts \\ [])
-  def apply(query, filter, opts) when is_map(filters) do
-	  filter = Map.to_list(filter)
-	  apply(query, filter, opts)
+  def apply(query, filters, opts \\ [])
+  def apply(query, filters, opts) when is_map(filters) do
+	  filters = Map.to_list(filters)
+	  apply(query, filters, opts)
   end
 
   def apply(query, filters, opts) when is_list(filters)  do
