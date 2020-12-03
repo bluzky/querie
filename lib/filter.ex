@@ -23,8 +23,12 @@ defmodule Querie.Filter do
   """
 
   def apply(query, filter, opts \\ [])
+  def apply(query, filter, opts) when is_map(filters) do
+	  filter = Map.to_list(filter)
+	  apply(query, filter, opts)
+  end
 
-  def apply(query, filters, opts) when is_list(filters) or is_map(filters) do
+  def apply(query, filters, opts) when is_list(filters)  do
     {sort, filters} = Keyword.pop(filters, :_sort, [])
 
     # skip field starts with underscore
