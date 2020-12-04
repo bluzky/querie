@@ -36,7 +36,6 @@ defmodule Querie.Filter do
     grouped_by_type =
       filters
       |> Enum.reject(fn
-        {_, {column, _}} -> String.starts_with?(to_string(column), "_")
         {column, _} -> String.starts_with?(to_string(column), "_")
         _ -> false
       end)
