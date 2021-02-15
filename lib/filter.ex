@@ -24,7 +24,6 @@ defmodule Querie.Filter do
   """
 
   def apply(query, filters, opts \\ [])
-
   def apply(query, filters, opts) when is_map(filters) do
     filters = Map.to_list(filters)
     apply(query, filters, opts)
