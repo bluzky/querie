@@ -25,11 +25,11 @@ defmodule Querie.Filter do
 
   def apply(query, filters, opts \\ [])
   def apply(query, filters, opts) when is_map(filters) do
-	  filters = Map.to_list(filters)
-	  apply(query, filters, opts)
+    filters = Map.to_list(filters)
+    apply(query, filters, opts)
   end
 
-  def apply(query, filters, opts) when is_list(filters)  do
+  def apply(query, filters, opts) when is_list(filters) do
     {sort, filters} = Keyword.pop(filters, :_sort, [])
 
     # skip field starts with underscore
@@ -238,4 +238,9 @@ defmodule Querie.Filter do
   end
 
   def join_ref(query, _, _), do: query
+
+  def search(query, fields, term) when is_list(fields) do
+    filters = %{or: Enum.map(fields, fn field -> {field, {:ilike, term}} end)}
+    apply(query, filters, [])
+  end
 end
