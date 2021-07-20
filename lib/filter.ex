@@ -1,5 +1,6 @@
 defmodule Querie.Filter do
   import Ecto.Query
+  import Kernel, except: [apply: 2, apply: 3]
 
   @doc """
   Apply filter on multiple column
@@ -22,13 +23,15 @@ defmodule Querie.Filter do
   # id = 10 and not (type = "work") and (team_id = 10 or (team_id = 11 and role = "manager" ))
   """
 
-  def apply(query, %{filter: filter, sort: sort}) do
-    query
-    |> __MODULE__.apply(filter)
-    |> sort(sort)
+  def apply(query, filters, opts \\ [])
+  def apply(query, filters, opts) when is_map(filters) do
+    filters = Map.to_list(filters)
+    apply(query, filters, opts)
   end
 
-  def apply(query, filters) when is_list(filters) or is_map(filters) do
+  def apply(query, filters, opts) when is_list(filters) do
+    {sort, filters} = Keyword.pop(filters, :_sort, [])
+
     # skip field starts with underscore
     grouped_by_type =
       filters
@@ -38,15 +41,37 @@ defmodule Querie.Filter do
         _ -> false
       end)
       |> Enum.group_by(fn
-        {:ref, _} -> :ref
+        {_, {:ref, _}} -> :ref
         _ -> :filter
       end)
 
-    d_query = filter(:and, grouped_by_type[:filter] || [])
+    column_filter = grouped_by_type[:filter] || []
+
+    column_filter =
+      if opts[:skip_nil] do
+        Enum.reject(column_filter, fn
+          {_, nil} -> true
+          {_, {_, nil}} -> true
+          _ -> false
+        end)
+      else
+        column_filter
+      end
+
+    d_query = filter(:and, column_filter)
 
     query
     |> where([q], ^d_query)
     |> join_ref(grouped_by_type[:ref])
+    |> sort(sort)
+  end
+
+  # add single column query condition to existing query
+  def filter(query, column, params) do
+    d_query = filter(column, params)
+
+    query
+    |> where([q], ^d_query)
   end
 
   @doc """
@@ -84,51 +109,51 @@ defmodule Querie.Filter do
     dynamic([q], not (^d_query))
   end
 
-  def filter(:in, {_column, nil}) do
+  def filter(_column, {:in, nil}) do
     nil
   end
 
-  def filter(:in, {column, values}) do
+  def filter(column, {:in, values}) do
     dynamic([q], field(q, ^column) in ^values)
   end
 
-  def filter(:is, {column, nil}) do
+  def filter(column, {:is, nil}) do
     dynamic([q], is_nil(field(q, ^column)))
   end
 
-  def filter(:is, {column, value}) do
+  def filter(column, {:is, value}) do
     dynamic([q], field(q, ^column) == ^value)
   end
 
-  def filter(_op, {_column, nil}) do
+  def filter(_column, {_op, nil}) do
     nil
   end
 
-  def filter(:gt, {column, value}) do
+  def filter(column, {:gt, value}) do
     dynamic([q], field(q, ^column) > ^value)
   end
 
-  def filter(:lt, {column, value}) do
+  def filter(column, {:lt, value}) do
     dynamic([q], field(q, ^column) < ^value)
   end
 
-  def filter(:ge, {column, value}) do
+  def filter(column, {:ge, value}) do
     dynamic([q], field(q, ^column) >= ^value)
   end
 
-  def filter(:le, {column, value}) do
+  def filter(column, {:le, value}) do
     dynamic([q], field(q, ^column) <= ^value)
   end
 
-  def filter(:ne, {column, value}) do
+  def filter(column, {:ne, value}) do
     dynamic([q], field(q, ^column) != ^value)
   end
 
-  def filter(:not, {column, value}) do
-    filter(:ne, {column, value})
+  def filter(column, {:not, value}) do
+    filter(column, {:ne, value})
   end
 
-  def filter(:between, {column, [lower, upper]}) do
+  def filter(column, {:between, [lower, upper]}) do
     case [lower, upper] do
       [nil, nil] -> nil
       [nil, upper] -> dynamic([q], field(q, ^column) < ^upper)
@@ -140,7 +165,7 @@ defmodule Querie.Filter do
   @doc """
   between inclusive
   """
-  def filter(:ibetween, {column, [lower, upper]}) do
+  def filter(column, {:ibetween, [lower, upper]}) do
     case [lower, upper] do
       [nil, nil] -> nil
       [nil, upper] -> dynamic([q], field(q, ^column) <= ^upper)
@@ -149,29 +174,37 @@ defmodule Querie.Filter do
     end
   end
 
-  def filter(:ibetween, _), do: nil
-  def filter(:between, _), do: nil
+  def filter(_, {:between, _}), do: nil
+  def filter(_, {:ibetween, _}), do: nil
 
-  def filter(:has, {column, value}) do
+  def filter(column, {:has, value}) do
     dynamic([q], ^value in field(q, ^column))
   end
-  
+
   def filter(_, {_, nil}), do: nil
 
-  def filter(:contains, {column, value}) do
+  def filter(column, {:contains, value}) do
     dynamic([q], like(field(q, ^column), ^"%#{value}%"))
   end
 
-  def filter(:icontains, {column, value}) do
+  def filter(column, {:icontains, value}) do
+    dynamic([q], ilike(field(q, ^column), ^"%#{value}%"))
+  end
+
+  def filter(column, {:like, value}) do
+    dynamic([q], like(field(q, ^column), ^"%#{value}%"))
+  end
+
+  def filter(column, {:ilike, value}) do
     dynamic([q], ilike(field(q, ^column), ^"%#{value}%"))
   end
 
   def filter(column, values) when is_list(values) do
-    filter(:in, {column, values})
+    filter(column, {:in, values})
   end
 
   def filter(column, value) do
-    filter(:is, {column, value})
+    filter(column, {:is, value})
   end
 
   def sort(query, fields) do
@@ -188,21 +221,27 @@ defmodule Querie.Filter do
     end
   end
 
-  def join_ref(query, nil), do: query
+  def join_ref(query, ref, opts \\ [])
+  def join_ref(query, nil, _), do: query
 
-  def join_ref(query, refs) when is_list(refs) do
-    Enum.reduce(refs, query, fn {_, ref_filter}, query ->
-      join_ref(query, ref_filter)
+  def join_ref(query, refs, query_opts) when is_list(refs) do
+    Enum.reduce(refs, query, fn {column, {:ref, ref_filter}}, query ->
+      join_ref(query, {column, ref_filter}, query_opts)
     end)
   end
 
-  def join_ref(query, {column, {model, filter, opts}}) do
+  def join_ref(query, {column, {model, filter, opts}}, query_opts) do
     foreign_key = Keyword.get(opts, :foreign_key, :"#{column}_id")
     references = Keyword.get(opts, :references, :id)
 
-    ref_query = __MODULE__.apply(model, filter)
+    ref_query = __MODULE__.apply(model, filter, query_opts)
     join(query, :inner, [a], b in ^ref_query, on: field(a, ^foreign_key) == field(b, ^references))
   end
 
-  def join_ref(query, _), do: query
+  def join_ref(query, _, _), do: query
+
+  def search(query, fields, term) when is_list(fields) do
+    filters = %{or: Enum.map(fields, fn field -> {field, {:ilike, term}} end)}
+    apply(query, filters, [])
+  end
 end

@@ -42,6 +42,14 @@
     <label>Category name contains case sensitive</label>
     <input type="text" name="category__ref[name__contains]" value="<%= @conn.params["category__ref"]["name__contains"] %>">
   </div>
+
+  <div>
+    <label>Sort title</label>
+    <select  name="title__sort" value="<%= @conn.params["title__sort"]%>">
+      <option value="asc">Ascending</option>
+      <option value="desc">Descending</option>
+    </select>
+  </div>
   <button type="submit">Apply filter</button>
 </form>
 <%= if length(@posts) > 0 do %>

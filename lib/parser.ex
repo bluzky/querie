@@ -12,7 +12,8 @@ end
 defmodule Querie.Parser do
   alias Querie.SchemaHelpers
   alias Querie.ParseContext
-  @supported_ops ~w(lt gt ge le is ne in contains icontains between ibetween sort has ref)
+
+  @supported_ops ~w(lt gt ge le is ne in contains icontains between ibetween sort has ref like ilike)
 
   @doc """
   Parse params and return
@@ -46,17 +47,17 @@ defmodule Querie.Parser do
       [field, operator] ->
         case operator do
           "ref" ->
-            {:ref, {field, split_key_and_operator(value)}}
+            {field, {:ref, split_key_and_operator(value)}}
 
           op when op in @supported_ops ->
-            {String.to_atom(op), {field, value}}
+            {field, {String.to_atom(op), value}}
 
           _ ->
             nil
         end
 
       [field] ->
-        {:is, {field, value}}
+        {field, {:is, value}}
 
       _ ->
         nil
@@ -70,7 +71,7 @@ defmodule Querie.Parser do
   end
 
   defp new_context(params, schema) do
-    sort_params = Enum.filter(params, fn {op, _} -> op == :sort end)
+    sort_params = Enum.filter(params, fn {_, {op, _}} -> op == :sort end)
     filter_params = params -- sort_params
 
     %ParseContext{sort_params: sort_params, filter_params: filter_params, schema: schema}
@@ -95,12 +96,12 @@ defmodule Querie.Parser do
   """
   def cast_schema(schema, params) do
     params
-    |> Enum.map(fn {operator, {column, _value}} = field ->
+    |> Enum.map(fn {column, {operator, _value}} = field ->
       with field_def <- SchemaHelpers.get_field(schema, column),
            {:field_def_nil, false} <- {:field_def_nil, is_nil(field_def)},
            {:ok, casted_value} <- cast_field(field, field_def) do
         # use String.to_existing_atom, here we make sure the column atom existed
-        {:ok, {operator, {String.to_existing_atom(column), casted_value}}}
+        {:ok, {String.to_existing_atom(column), {operator, casted_value}}}
       else
         {:field_def_nil, true} -> nil
         :skip -> nil
@@ -114,7 +115,7 @@ defmodule Querie.Parser do
   defp cast_field({_, {_, ""}}, _), do: :skip
 
   # cast nested schema
-  defp cast_field({:ref, {_, raw_value}}, {_, _, opts}) do
+  defp cast_field({_, {:ref, raw_value}}, {_, _, opts}) do
     with {:ok, schema} <- Keyword.fetch(opts, :schema),
          {:ok, model} <- Keyword.fetch(opts, :model),
          {:ok, casted_value} <- parse_with_schema(raw_value, schema) do
@@ -123,7 +124,8 @@ defmodule Querie.Parser do
     end
   end
 
-  defp cast_field({operator, {_, raw_value}}, {_, type, opts})
+  # if between operator, cast value range
+  defp cast_field({_, {operator, raw_value}}, {_, type, opts})
        when operator in ~w(between ibetween)a do
     Querie.Caster.cast({:range, type}, raw_value, opts)
   end
@@ -132,13 +134,14 @@ defmodule Querie.Parser do
     Querie.Caster.cast(type, raw_value, opts)
   end
 
+  # parse sort criteria
   defp parse_sort(%{valid?: true} = context) do
     validation_data =
       context.sort_params
-      |> Enum.map(fn {:sort, {column, direction}} ->
+      |> Enum.map(fn {column, {:sort, direction}} ->
         with {_, true} <- {:column, column in SchemaHelpers.fields(context.schema)},
              {_, true} <- {:direction, direction in ~w(asc desc)} do
-          {:ok, {:sort, {String.to_existing_atom(column), String.to_atom(direction)}}}
+          {:ok, {String.to_existing_atom(column), {:sort, String.to_atom(direction)}}}
         else
           {:column, _} -> {:error, {column, "is not sortable"}}
           {:direction, _} -> {:error, {column, "sort direction is invalid"}}
@@ -152,7 +155,7 @@ defmodule Querie.Parser do
     else
       sort_data =
         collect_data(validation_data)
-        |> Enum.map(fn {_, {column, direction}} -> {column, direction, nil} end)
+        |> Enum.map(fn {column, {_, direction}} -> {column, direction, nil} end)
 
       defautl_sort = get_sort_options(context.schema)
 
@@ -196,7 +199,7 @@ defmodule Querie.Parser do
   end
 
   defp finalize_result(%{valid?: true} = context) do
-    {:ok, %{filter: context.filter_data, sort: context.sort_data}}
+    {:ok, context.filter_data ++ [{:_sort, context.sort_data}]}
   end
 
   defp finalize_result(%{valid?: false} = context) do
