@@ -4,7 +4,6 @@ defmodule Querie.Filter do
 
   @doc """
   Apply filter on multiple column
-
   Example:
   %{
     id: 10,
@@ -19,7 +18,6 @@ defmodule Querie.Filter do
       }
     }
   }
-
   # id = 10 and not (type = "work") and (team_id = 10 or (team_id = 11 and role = "manager" ))
   """
 
@@ -36,7 +34,6 @@ defmodule Querie.Filter do
     grouped_by_type =
       filters
       |> Enum.reject(fn
-        {_, {column, _}} -> String.starts_with?(to_string(column), "_")
         {column, _} -> String.starts_with?(to_string(column), "_")
         _ -> false
       end)
@@ -76,7 +73,6 @@ defmodule Querie.Filter do
 
   @doc """
   Apply filter on single column
-
   If filter value is list, filter row that match any value in the list
   """
 
